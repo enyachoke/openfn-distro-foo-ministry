@@ -59,3 +59,8 @@ sha256sum -c SHA256SUMS
 sudo ./deploy.sh --non-interactive --deploy-dir /tmp/openfn-lightning --yes
 sudo DEPLOY_DIR=/tmp/openfn-lightning ./verify.sh
 ```
+## Time Elapsed
+
+* ~ 3 hours spent thinking through the solution and using AI agents to write the code and test.
+
+* ~ 1 hour spent reviewing the  DECISIONS.md, RUNBOOK.md and README.md and fixing them from what the agent generated
