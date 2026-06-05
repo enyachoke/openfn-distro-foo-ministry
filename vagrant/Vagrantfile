@@ -1,0 +1,64 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby -*-
+# Two amd64 hosts via Docker provider:
+#   builder — internet, runs build-bundle.sh (jump-host analogue)
+#   ministry — receives bundle, load + deploy (air-gapped target)
+
+Vagrant.configure("2") do |config|
+  config.vm.boot_timeout = 600
+
+  # Shared Docker network (created by test-airgap.sh / cleanup-vagrant.sh)
+  docker_net = "openfn-vagrant-lab"
+  docker_create = [
+    "--platform=linux/amd64",
+    "--cgroupns=host",
+    "--network=#{docker_net}",
+  ]
+
+  config.vm.define "builder" do |builder|
+    builder.vm.hostname = "openfn-builder"
+
+    builder.vm.provider "docker" do |d, override|
+      override.vm.box = nil
+      d.image = "rofrano/vagrant-provider:ubuntu"
+      d.has_ssh = true
+      d.remains_running = true
+      d.privileged = true
+      d.volumes = ["/sys/fs/cgroup:/sys/fs/cgroup:rw"]
+      d.create_args = docker_create + [
+        "--ip=192.168.56.10",
+        "--memory=4g",
+        "--cpus=2",
+      ]
+    end
+
+    builder.vm.synced_folder File.expand_path("..", __dir__), "/vagrant/openfn-distro"
+    builder.vm.provision "shell", path: "provision/install-docker.sh"
+    builder.vm.provision "shell", path: "provision/ssh-keys.sh"
+    builder.vm.provision "shell", path: "provision/builder.sh"
+  end
+
+  config.vm.define "ministry" do |ministry|
+    ministry.vm.hostname = "openfn-ministry"
+
+    ministry.vm.provider "docker" do |d, override|
+      override.vm.box = nil
+      d.image = "rofrano/vagrant-provider:ubuntu"
+      d.has_ssh = true
+      d.remains_running = true
+      d.privileged = true
+      d.volumes = ["/sys/fs/cgroup:/sys/fs/cgroup:rw"]
+      d.ports = ["14000:4000", "2203:22"]
+      d.create_args = docker_create + [
+        "--ip=192.168.56.20",
+        "--memory=8g",
+        "--cpus=4",
+      ]
+    end
+
+    # No synced repo on ministry — bundle arrives via scp from builder only.
+    ministry.vm.provision "shell", path: "provision/install-docker.sh"
+    ministry.vm.provision "shell", path: "provision/ssh-keys.sh"
+    ministry.vm.provision "shell", path: "provision/ministry.sh"
+  end
+end

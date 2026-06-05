@@ -1,0 +1,17 @@
+# Bundle artifacts
+bundle-output/
+*.tar
+*.tar.gz
+images/
+
+# Secrets and deploy state
+secrets/
+**/secrets/.env
+**/secrets/.env.bak.*
+
+# Vagrant
+vagrant/.vagrant/
+vagrant/bundle-output/
+
+# OS
+.DS_Store
